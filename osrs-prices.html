@@ -24,7 +24,18 @@
     <div class="mb-6 flex items-center justify-between">
         <input type="text" id="search-input" placeholder="Search items..."
             class="px-4 py-2 border rounded flex-grow mr-4">
-        <button id="filter-button" class="px-4 py-2 bg-blue-500 text-white rounded w-40">Show Filters</button>
+
+        <!-- Dropdown for preset values -->
+        <select id="preset-dropdown" class="px-4 py-2 bg-white border rounded mr-4">
+            <option value="">Select Preset</option>
+            <option value="hotVolume">Hot Volume</option>
+        </select>
+
+        <!-- Show/Hide Filters Button -->
+        <button id="filter-button" class="px-4 py-2 bg-blue-500 text-white rounded w-40 mr-4">Show Filters</button>
+
+        <!-- Reset Filters Button outside the filter div with added margin -->
+        <button id="reset-filters-outside" class="px-4 py-2 bg-red-500 text-white rounded">Reset Filters</button>
     </div>
 
     <!-- Filter Panel -->
@@ -88,7 +99,6 @@
                 <label for="maxLimit" class="block mb-2">Max Limit:</label>
                 <input type="text" id="maxLimit" class="px-4 py-2 border rounded w-full number-input">
             </div>
-            <!-- New Filters for Latest Instabuy and Instasell Times in Minutes -->
             <div>
                 <label for="minHighTime" class="block mb-2">Min Latest Instabuy (minutes):</label>
                 <input type="text" id="minHighTime" class="px-4 py-2 border rounded w-full number-input">
@@ -106,7 +116,12 @@
                 <input type="text" id="maxLowTime" class="px-4 py-2 border rounded w-full number-input">
             </div>
         </div>
-        <button id="apply-filters" class="mt-4 px-4 py-2 bg-green-500 text-white rounded">Apply Filters</button>
+
+        <div class="mt-4 flex space-x-4">
+            <button id="apply-filters" class="px-4 py-2 bg-green-500 text-white rounded">Apply Filters</button>
+            <button id="reset-filters" class="px-4 py-2 bg-red-500 text-white rounded">Reset Filters</button>
+            <button id="close-filters" class="px-4 py-2 bg-blue-500 text-white rounded">Hide Filters</button>
+        </div>
     </div>
 
     <div id="item-list">
@@ -490,7 +505,7 @@
 
                 row.innerHTML = `
                     <td class="px-4 py-2"><img src="${item.imageUrl}" alt="${item.itemName}" class="block mx-auto max-w-[48px] max-h-[48px] w-auto h-auto"></td>
-                    <td class="px-4 py-2">${item.itemName}</td>
+                    <td class="px-4 py-2"><a href="https://prices.runescape.wiki/osrs/item/${item.itemId}" target="_blank">${item.itemName}</a></td>
                     <td class="px-4 py-2">${formatNumberWithCommas(item.instabuyPrice)}</td>
                     <td class="px-4 py-2">${formatNumberWithCommas(item.instasellPrice)}</td>
                     <td class="px-4 py-2">${item.highTimeFormatted}</td>
@@ -566,6 +581,66 @@
 
         // Apply filters when the "Apply Filters" button is clicked
         document.getElementById('apply-filters').addEventListener('click', filterItems);
+
+        // Reset Filters functionality
+        document.getElementById('reset-filters').addEventListener('click', () => {
+            const inputs = document.querySelectorAll('#filter-panel input');
+            inputs.forEach(input => input.value = ''); // Clear all input fields
+
+            // Reset preset dropdown to default
+            document.getElementById('preset-dropdown').value = '';
+
+            filterItems(); // Re-apply filters after reset
+        });
+
+        // Reset Filters functionality for outside button
+        document.getElementById('reset-filters-outside').addEventListener('click', () => {
+            const inputs = document.querySelectorAll('#filter-panel input');
+            inputs.forEach(input => input.value = ''); // Clear all input fields
+
+            // Reset preset dropdown to default
+            document.getElementById('preset-dropdown').value = '';
+
+            filterItems(); // Re-apply filters after reset
+        });
+
+        // Close Filters functionality
+        document.getElementById('close-filters').addEventListener('click', () => {
+            document.getElementById('filter-panel').style.display = 'none';
+            document.getElementById('filter-button').textContent = 'Show Filters';
+        });
+
+        // Preset dropdown values for loading filter configurations
+        document.getElementById('preset-dropdown').addEventListener('change', (event) => {
+            const preset = event.target.value;
+
+            // Define preset filter values
+            const presets = {
+                'hotVolume': {
+                    minVolume: '10000',
+                    maxInstabuy: '10000000',
+                    maxInstasell: '10000000',
+                    maxHighTime: '5',
+                    maxLowTime: '5'
+                }
+            };
+
+            // Get the preset values based on the selected option
+            const selectedPreset = presets[preset];
+
+            if (selectedPreset) {
+                // Apply preset values to the filter inputs
+                for (const [key, value] of Object.entries(selectedPreset)) {
+                    const inputField = document.getElementById(key);
+                    if (inputField) {
+                        inputField.value = value;
+                    }
+                }
+
+                // Apply filters automatically after loading the preset
+                filterItems();
+            }
+        });
 
         // Toggle filter panel visibility and button text
         document.getElementById('filter-button').addEventListener('click', () => {
