@@ -748,7 +748,14 @@
                         // Calculate the tax (rounded down) and margin
                         const instabuyPrice = itemData.high;
                         const instasellPrice = itemData.low;
-                        const taxValue = Math.floor(instabuyPrice * 0.01); // 1% tax rounded down
+
+                        let taxValue = Math.floor(instabuyPrice * 0.01); // 1% tax rounded down
+
+                        // Cap the tax value
+                        if (taxValue > 5000000) {
+                            taxValue = 5000000
+                        }
+
                         const taxedInstabuy = instabuyPrice - taxValue; // Subtract rounded tax from instabuy price
                         const margin = taxedInstabuy - instasellPrice;
                         const potentialProfit = margin * itemDetail.limit;
@@ -792,8 +799,8 @@
             await getAllPrices();
             updateSortIndicators();
 
-            // Refresh prices every 30 seconds
-            setInterval(getAllPrices, 10000); // 30000 ms = 30 seconds
+            // Refresh prices every 10 seconds
+            setInterval(getAllPrices, 10000); // 10000 ms = 10 seconds
         }
 
         // Attach event listener to the search input
