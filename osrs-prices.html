@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Cache-Control" content="no-store" /> <!-- Disable caching -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSRS Real-time Prices</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Styles for sort indicators */
+        .sort-indicator {
+            display: inline-block;
+            margin-left: 5px;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 p-8">
+    <h1 class="text-3xl font-bold mb-6">OSRS Real-time Prices</h1>
+
+    <!-- Search Input Field -->
+    <div class="mb-6">
+        <input type="text" id="search-input" placeholder="Search items..." class="px-4 py-2 border rounded w-full">
+    </div>
+
+    <div id="item-list">
+        <table class="min-w-full table-auto bg-white shadow-md rounded-lg">
+            <thead class="bg-gray-100">
+                <tr>
+                    <th class="px-4 py-2 text-left text-gray-600 font-bold"></th>
+                    <!-- Updated headers to be clickable -->
+                    <th class="px-4 py-2 text-left text-gray-600 font-bold cursor-pointer" data-column="itemName">Item
+                        Name<span class="sort-indicator" id="sort-itemName"></span></th>
+                    <th class="px-4 py-2 text-left text-gray-600 font-bold cursor-pointer" data-column="instabuyPrice">
+                        Instabuy<span class="sort-indicator" id="sort-instabuyPrice"></span></th>
+                    <th class="px-4 py-2 text-left text-gray-600 font-bold cursor-pointer" data-column="instasellPrice">
+                        Instasell<span class="sort-indicator" id="sort-instasellPrice"></span></th>
+                    <th class="px-4 py-2 text-left text-gray-600 font-bold cursor-pointer" data-column="highTime">Latest
+                        Instabuy<span class="sort-indicator" id="sort-highTime"></span></th>
+                    <th class="px-4 py-2 text-left text-gray-600 font-bold cursor-pointer" data-column="lowTime">Latest
+                        Instasell<span class="sort-indicator" id="sort-lowTime"></span></th>
+                    <th class="px-4 py-2 text-left text-gray-600 font-bold cursor-pointer" data-column="margin">
+                        Margin<span class="sort-indicator" id="sort-margin"></span></th>
+                    <th class="px-4 py-2 text-left text-gray-600 font-bold cursor-pointer"
+                        data-column="potentialProfit">Potential Profit<span class="sort-indicator"
+                            id="sort-potentialProfit"></span></th>
+                    <th class="px-4 py-2 text-left text-gray-600 font-bold cursor-pointer" data-column="marginVolume">
+                        Margin X Volume<span class="sort-indicator" id="sort-marginVolume"></span></th>
+                    <th class="px-4 py-2 text-left text-gray-600 font-bold cursor-pointer" data-column="totalVolume">
+                        Volume<span class="sort-indicator" id="sort-totalVolume"></span></th>
+                    <th class="px-4 py-2 text-left text-gray-600 font-bold cursor-pointer" data-column="limit">
+                        Limit<span class="sort-indicator" id="sort-limit"></span></th>
+                    <th class="px-4 py-2 text-left text-gray-600 font-bold cursor-pointer" data-column="taxValue">Tax
+                        (1%)<span class="sort-indicator" id="sort-taxValue"></span></th>
+                </tr>
+            </thead>
+            <tbody id="item-list-body" class="divide-y divide-gray-200">
+                <!-- List view will populate here -->
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        let itemMapping = {};
+        let itemDetails = {};
+        let itemDataArray = []; // Array to store item data
+        let currentSortColumn = null;
+        let currentSortDirection = null; // 'asc', 'desc', or null
+
+        // Fetch the item name to ID mapping
+        async function fetchItemNames() {
+            const apiUrl = 'https://oldschool.runescape.wiki/?title=Module:GEIDs/data.json&action=raw&ctype=application%2Fjson';
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch item mapping');
+                }
+                itemMapping = await response.json();
+            } catch (error) {
+                console.error('Error fetching item mapping:', error);
+            }
+        }
+
+        // Fetch item metadata (icon, alch values, etc.)
+        async function fetchItemDetails() {
+            const apiUrl = 'https://prices.runescape.wiki/api/v1/osrs/mapping';
+            try {
+                const response = await fetch(apiUrl);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch item details');
+                }
+                itemDetails = await response.json();
+            } catch (error) {
+                console.error('Error fetching item details:', error);
+            }
+        }
+
+        // Format number with commas, return 'N/A' if undefined
+        function formatNumber(number) {
+            return number ? number.toLocaleString() : 'N/A';
+        }
+
+        // Format with K for thousands, M for millions, and B for billions
+        function roundedFormat(number) {
+            if (number === undefined || number === null) return 'N/A';
+
+            const absNumber = Math.abs(number); // Get absolute value to handle formatting
+
+            let formattedNumber;
+            if (absNumber >= 1e9) {
+                formattedNumber = (number / 1e9).toFixed(2); // Billions
+            } else if (absNumber >= 1e6) {
+                formattedNumber = (number / 1e6).toFixed(2); // Millions
+            } else if (absNumber >= 1e3) {
+                formattedNumber = (number / 1e3).toFixed(2); // Thousands
+            } else {
+                formattedNumber = number.toLocaleString(); // For smaller numbers, just use commas
+            }
+
+            // Remove trailing zeros from formatted values (convert to number and back to string)
+            if (typeof formattedNumber === 'string') {
+                formattedNumber = parseFloat(formattedNumber).toString();
+            }
+
+            // Add suffix (K, M, B) if applicable
+            if (absNumber >= 1e9) {
+                return formattedNumber + 'B'; // Billions
+            } else if (absNumber >= 1e6) {
+                return formattedNumber + 'M'; // Millions
+            } else if (absNumber >= 1e3) {
+                return formattedNumber + 'K'; // Thousands
+            } else {
+                return formattedNumber; // For smaller numbers, no suffix
+            }
+        }
+
+        // Convert timestamp to a human-readable time format
+        function getTimeDifference(timestamp) {
+            const now = Math.floor(Date.now() / 1000); // Get current time in seconds
+            const secondsAgo = now - timestamp; // Calculate time difference
+
+            // Time constants
+            const minute = 60;
+            const hour = minute * 60;
+            const day = hour * 24;
+            const week = day * 7;
+            const month = day * 30;
+            const year = day * 365;
+
+            // Calculate time differences with singular/plural handling
+            if (secondsAgo < minute) {
+                return `${secondsAgo} second${secondsAgo !== 1 ? 's' : ''} ago`;
+            } else if (secondsAgo < hour) {
+                const minutesAgo = Math.floor(secondsAgo / minute);
+                return `${minutesAgo} minute${minutesAgo !== 1 ? 's' : ''} ago`;
+            } else if (secondsAgo < day) {
+                const hoursAgo = Math.floor(secondsAgo / hour);
+                return `${hoursAgo} hour${hoursAgo !== 1 ? 's' : ''} ago`;
+            } else if (secondsAgo < week) {
+                const daysAgo = Math.floor(secondsAgo / day);
+                return `${daysAgo} day${daysAgo !== 1 ? 's' : ''} ago`;
+            } else if (secondsAgo < month) {
+                const weeksAgo = Math.floor(secondsAgo / week);
+                return `${weeksAgo} week${weeksAgo !== 1 ? 's' : ''} ago`;
+            } else if (secondsAgo < year) {
+                const monthsAgo = Math.floor(secondsAgo / month);
+                return `${monthsAgo} month${monthsAgo !== 1 ? 's' : ''} ago`;
+            } else {
+                const yearsAgo = Math.floor(secondsAgo / year);
+                return `${yearsAgo} year${yearsAgo !== 1 ? 's' : ''} ago`;
+            }
+        }
+
+        // Function to display items in the table with a maximum of 50 items
+        function displayItems(items) {
+            const itemListBody = document.getElementById('item-list-body');
+            itemListBody.innerHTML = ''; // Clear the table body
+
+            const maxItems = 50; // Maximum number of items to display
+
+            // Sort items if a sort column is selected
+            if (currentSortColumn) {
+                items.sort((a, b) => {
+                    let valueA = a[currentSortColumn];
+                    let valueB = b[currentSortColumn];
+
+                    // Handle undefined or null values
+                    if (valueA == null) valueA = '';
+                    if (valueB == null) valueB = '';
+
+                    // For numeric columns, compare numbers
+                    if (typeof valueA === 'number' && typeof valueB === 'number') {
+                        return currentSortDirection === 'asc' ? valueA - valueB : valueB - valueA;
+                    }
+
+                    // For string columns, compare strings
+                    valueA = valueA.toString().toLowerCase();
+                    valueB = valueB.toString().toLowerCase();
+
+                    if (valueA < valueB) return currentSortDirection === 'asc' ? -1 : 1;
+                    if (valueA > valueB) return currentSortDirection === 'asc' ? 1 : -1;
+                    return 0;
+                });
+            }
+
+            for (let i = 0; i < items.length && i < maxItems; i++) {
+                const item = items[i];
+                const row = document.createElement('tr');
+
+                row.innerHTML = `
+                    <td class="px-4 py-2"><img src="${item.imageUrl}" alt="${item.itemName}" class="block mx-auto max-w-[48px] max-h-[48px] w-auto h-auto"></td>
+                    <td class="px-4 py-2">${item.itemName}</td>
+                    <td class="px-4 py-2">${formatNumber(item.instabuyPrice)}</td>
+                    <td class="px-4 py-2">${formatNumber(item.instasellPrice)}</td>
+                    <td class="px-4 py-2">${item.highTimeFormatted}</td>
+                    <td class="px-4 py-2">${item.lowTimeFormatted}</td>
+                    <td class="px-4 py-2" style="color: ${item.margin >= 0 ? 'green' : 'red'};">${roundedFormat(item.margin)}</td>
+                    <td class="px-4 py-2" style="color: ${item.potentialProfit >= 0 ? 'green' : 'red'};">${roundedFormat(item.potentialProfit)}</td>
+                    <td class="px-4 py-2" style="color: ${item.marginVolume >= 0 ? 'green' : 'red'};">${roundedFormat(item.marginVolume)}</td>
+                    <td class="px-4 py-2">${roundedFormat(item.totalVolume)}</td>
+                    <td class="px-4 py-2">${formatNumber(item.limit)}</td>
+                    <td class="px-4 py-2">${roundedFormat(item.taxValue)}</td>
+                `;
+                itemListBody.appendChild(row);
+            }
+        }
+
+        // Function to filter items based on the search input
+        function filterItems() {
+            const searchTerm = document.getElementById('search-input').value.trim().toLowerCase();
+
+            let filteredItems = itemDataArray;
+
+            if (searchTerm) {
+                filteredItems = itemDataArray.filter(item => item.itemName.toLowerCase().includes(searchTerm));
+            }
+
+            displayItems(filteredItems);
+        }
+
+        // Function to handle sorting when a header is clicked
+        function handleSort(event) {
+            const column = event.target.getAttribute('data-column');
+
+            if (!column) return;
+
+            // Determine the new sort direction
+            if (currentSortColumn === column) {
+                if (currentSortDirection === 'asc') {
+                    currentSortDirection = 'desc';
+                } else if (currentSortDirection === 'desc') {
+                    currentSortDirection = null;
+                    currentSortColumn = null;
+                } else {
+                    currentSortDirection = 'asc';
+                }
+            } else {
+                currentSortColumn = column;
+                currentSortDirection = 'asc';
+            }
+
+            // Update sort indicators
+            updateSortIndicators();
+
+            // Re-filter and display items
+            filterItems();
+        }
+
+        // Function to update sort indicators in the headers
+        function updateSortIndicators() {
+            const headers = document.querySelectorAll('th[data-column]');
+            headers.forEach(header => {
+                const column = header.getAttribute('data-column');
+                const indicator = header.querySelector('.sort-indicator');
+
+                if (column === currentSortColumn) {
+                    if (currentSortDirection === 'asc') {
+                        indicator.textContent = '▲';
+                    } else if (currentSortDirection === 'desc') {
+                        indicator.textContent = '▼';
+                    } else {
+                        indicator.textContent = '';
+                    }
+                } else {
+                    indicator.textContent = '';
+                }
+            });
+        }
+
+        // Fetch prices for all items and store them in an array
+        async function getAllPrices() {
+            const latestPricesApi = 'https://prices.runescape.wiki/api/v1/osrs/latest';
+            const volumeApi = 'https://prices.runescape.wiki/api/v1/osrs/24h';
+            try {
+                const [latestResponse, volumeResponse] = await Promise.all([
+                    fetch(latestPricesApi),
+                    fetch(volumeApi)
+                ]);
+
+                if (!latestResponse.ok || !volumeResponse.ok) {
+                    throw new Error('Failed to fetch data from one or more APIs');
+                }
+
+                const latestData = await latestResponse.json();
+                const volumeData = await volumeResponse.json();
+
+                itemDataArray = []; // Clear previous data
+
+                // Iterate through all items in the mapping
+                for (const [itemName, itemId] of Object.entries(itemMapping)) {
+                    const itemData = latestData.data[itemId];
+                    const itemDetail = itemDetails.find(item => item.id === itemId); // Find item metadata
+                    const volumeInfo = volumeData.data[itemId]; // Get volume data
+
+                    if (itemData && itemDetail && volumeInfo) {
+                        const imageUrl = `https://oldschool.runescape.wiki/images/${itemDetail.icon.replace(/\s+/g, '_')}`;
+
+                        // Get human-readable time differences
+                        const highTimeFormatted = getTimeDifference(itemData.highTime);
+                        const lowTimeFormatted = getTimeDifference(itemData.lowTime);
+
+                        // Add high and low volumes together
+                        const totalVolume = volumeInfo.highPriceVolume + volumeInfo.lowPriceVolume;
+
+                        // Calculate the tax (rounded down) and margin
+                        const instabuyPrice = itemData.high;
+                        const instasellPrice = itemData.low;
+                        const taxValue = Math.floor(instabuyPrice * 0.01); // 1% tax rounded down
+                        const taxedInstabuy = instabuyPrice - taxValue; // Subtract rounded tax from instabuy price
+                        const margin = taxedInstabuy - instasellPrice;
+                        const potentialProfit = margin * itemDetail.limit;
+                        const marginVolume = margin * totalVolume;
+
+                        // Store item data in the array
+                        itemDataArray.push({
+                            itemName,
+                            itemId,
+                            imageUrl,
+                            instabuyPrice,
+                            instasellPrice,
+                            highTime: itemData.highTime, // For sorting by timestamp
+                            lowTime: itemData.lowTime,   // For sorting by timestamp
+                            highTimeFormatted,
+                            lowTimeFormatted,
+                            margin,
+                            potentialProfit,
+                            marginVolume,
+                            totalVolume,
+                            limit: itemDetail.limit,
+                            taxValue
+                        });
+                    }
+                }
+
+                // Trigger filtering after data is fetched
+                filterItems();
+            } catch (error) {
+                console.error('Error fetching all item data:', error);
+                document.getElementById('item-list-body').innerHTML = `<tr><td colspan="12">Error fetching data. Please try again.</td></tr>`;
+            }
+        }
+
+        // Fetch the item mapping and details when the page loads
+        async function loadData() {
+            await fetchItemNames();
+            await fetchItemDetails();
+            await getAllPrices();
+
+            // Refresh prices every 30 seconds
+            setInterval(getAllPrices, 30000); // 30000 ms = 30 seconds
+        }
+
+        // Attach event listener to the search input
+        document.getElementById('search-input').addEventListener('input', filterItems);
+
+        // Attach event listeners to the table headers
+        const headers = document.querySelectorAll('th[data-column]');
+        headers.forEach(header => {
+            header.addEventListener('click', handleSort);
+        });
+
+        // Run loadData when the page is fully loaded
+        window.onload = loadData;
+    </script>
+</body>
+
+</html>
