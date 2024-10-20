@@ -5,19 +5,20 @@
     <meta charset="UTF-8">
     <meta http-equiv="Cache-Control" content="no-store" /> <!-- Disable caching -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OSRS Real-time Prices</title>
+    <title>OSRS Prices</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* Styles for sort indicators */
         .sort-indicator {
             display: inline-block;
             margin-left: 5px;
+            cursor: pointer;
         }
     </style>
 </head>
 
 <body class="bg-gray-100 p-8">
-    <h1 class="text-3xl font-bold mb-6">OSRS Real-time Prices</h1>
+    <h1 class="text-3xl font-bold mb-6">OSRS Prices</h1>
 
     <!-- Search Input Field -->
     <div class="mb-6">
@@ -60,9 +61,6 @@
                                 <path
                                     d="M10.6129 14C10.4413 14 10.2697 13.9368 10.1342 13.8013L7.87611 11.5432C7.61418 11.2813 7.61418 10.8477 7.87611 10.5858C8.13805 10.3239 8.5716 10.3239 8.83353 10.5858L10.6129 12.3652L12.3922 10.5858C12.6542 10.3239 13.0877 10.3239 13.3497 10.5858C13.6116 10.8477 13.6116 11.2813 13.3497 11.5432L11.0916 13.8013C10.9561 13.9368 10.7845 14 10.6129 14Z"
                                     fill="currentColor"></path>
-                                <path
-                                    d="M10.6129 14C10.2426 14 9.93552 13.6929 9.93552 13.3226V0.677419C9.93552 0.307097 10.2426 0 10.6129 0C10.9833 0 11.2904 0.307097 11.2904 0.677419V13.3226C11.2904 13.6929 10.9832 14 10.6129 14Z"
-                                    fill="currentColor"></path>
                             </svg></span></th>
                     <th class="px-4 py-2 text-left text-gray-600 font-bold cursor-pointer" data-column="instasellPrice">
                         Instasell<span class="sort-indicator" id="sort-instasellPrice"><svg width="14" height="14"
@@ -77,9 +75,6 @@
                                 <path
                                     d="M10.6129 14C10.4413 14 10.2697 13.9368 10.1342 13.8013L7.87611 11.5432C7.61418 11.2813 7.61418 10.8477 7.87611 10.5858C8.13805 10.3239 8.5716 10.3239 8.83353 10.5858L10.6129 12.3652L12.3922 10.5858C12.6542 10.3239 13.0877 10.3239 13.3497 10.5858C13.6116 10.8477 13.6116 11.2813 13.3497 11.5432L11.0916 13.8013C10.9561 13.9368 10.7845 14 10.6129 14Z"
                                     fill="currentColor"></path>
-                                <path
-                                    d="M10.6129 14C10.2426 14 9.93552 13.6929 9.93552 13.3226V0.677419C9.93552 0.307097 10.2426 0 10.6129 0C10.9833 0 11.2904 0.307097 11.2904 0.677419V13.3226C11.2904 13.6929 10.9832 14 10.6129 14Z"
-                                    fill="currentColor"></path>
                             </svg></span></th>
                     <th class="px-4 py-2 text-left text-gray-600 font-bold cursor-pointer" data-column="highTime">Latest
                         Instabuy<span class="sort-indicator" id="sort-highTime"><svg width="14" height="14"
@@ -93,9 +88,6 @@
                                     fill="currentColor"></path>
                                 <path
                                     d="M10.6129 14C10.4413 14 10.2697 13.9368 10.1342 13.8013L7.87611 11.5432C7.61418 11.2813 7.61418 10.8477 7.87611 10.5858C8.13805 10.3239 8.5716 10.3239 8.83353 10.5858L10.6129 12.3652L12.3922 10.5858C12.6542 10.3239 13.0877 10.3239 13.3497 10.5858C13.6116 10.8477 13.6116 11.2813 13.3497 11.5432L11.0916 13.8013C10.9561 13.9368 10.7845 14 10.6129 14Z"
-                                    fill="currentColor"></path>
-                                <path
-                                    d="M10.6129 14C10.2426 14 9.93552 13.6929 9.93552 13.3226V0.677419C9.93552 0.307097 10.2426 0 10.6129 0C10.9833 0 11.2904 0.307097 11.2904 0.677419V13.3226C11.2904 13.6929 10.9832 14 10.6129 14Z"
                                     fill="currentColor"></path>
                             </svg></span></th>
                     <th class="px-4 py-2 text-left text-gray-600 font-bold cursor-pointer" data-column="lowTime">Latest
@@ -214,7 +206,7 @@
     <script>
         let itemMapping = {};
         let itemDetails = {};
-        let itemDataArray = []; // Array to store item data
+        let itemDataArray = [];
         let currentSortColumn = 'margin';
         let currentSortDirection = 'desc';
         const requestHeaders = {
@@ -543,10 +535,33 @@
         // Attach event listener to the search input
         document.getElementById('search-input').addEventListener('input', filterItems);
 
-        // Attach event listeners to the table headers
+        // Attach event listeners to the table headers and icons
         const headers = document.querySelectorAll('th[data-column]');
         headers.forEach(header => {
             header.addEventListener('click', handleSort);
+        });
+
+        // Attach event listeners to the sort icons
+        const sortIcons = document.querySelectorAll('.sort-indicator');
+        sortIcons.forEach(icon => {
+            icon.addEventListener('click', function (event) {
+                const column = this.parentElement.getAttribute('data-column');
+                if (!column) return;
+
+                // Same sorting behavior as clicking the header
+                if (currentSortColumn === column) {
+                    currentSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    currentSortColumn = column;
+                    currentSortDirection = 'desc';
+                }
+
+                updateSortIndicators();
+                filterItems();
+
+                // Prevent click from propagating to the header
+                event.stopPropagation();
+            });
         });
 
         // Run loadData when the page is fully loaded
