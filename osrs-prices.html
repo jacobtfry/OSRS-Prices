@@ -20,9 +20,93 @@
 <body class="bg-gray-100 p-8">
     <h1 class="text-3xl font-bold mb-6">OSRS Prices</h1>
 
-    <!-- Search Input Field -->
-    <div class="mb-6">
-        <input type="text" id="search-input" placeholder="Search items..." class="px-4 py-2 border rounded w-full">
+    <!-- Search Input and Filter Button -->
+    <div class="mb-6 flex items-center justify-between">
+        <input type="text" id="search-input" placeholder="Search items..."
+            class="px-4 py-2 border rounded flex-grow mr-4">
+        <button id="filter-button" class="px-4 py-2 bg-blue-500 text-white rounded w-40">Show Filters</button>
+    </div>
+
+    <!-- Filter Panel -->
+    <div id="filter-panel" class="mb-6 p-4 bg-gray-200 rounded-lg" style="display: none;">
+        <h2 class="text-xl font-bold mb-4">Filter Columns</h2>
+        <div class="grid grid-cols-2 gap-4">
+            <!-- Filters for each column -->
+            <div>
+                <label for="minInstabuy" class="block mb-2">Min Instabuy Price:</label>
+                <input type="text" id="minInstabuy" class="px-4 py-2 border rounded w-full number-input">
+            </div>
+            <div>
+                <label for="maxInstabuy" class="block mb-2">Max Instabuy Price:</label>
+                <input type="text" id="maxInstabuy" class="px-4 py-2 border rounded w-full number-input">
+            </div>
+            <div>
+                <label for="minInstasell" class="block mb-2">Min Instasell Price:</label>
+                <input type="text" id="minInstasell" class="px-4 py-2 border rounded w-full number-input">
+            </div>
+            <div>
+                <label for="maxInstasell" class="block mb-2">Max Instasell Price:</label>
+                <input type="text" id="maxInstasell" class="px-4 py-2 border rounded w-full number-input">
+            </div>
+            <div>
+                <label for="minMargin" class="block mb-2">Min Margin:</label>
+                <input type="text" id="minMargin" class="px-4 py-2 border rounded w-full number-input">
+            </div>
+            <div>
+                <label for="maxMargin" class="block mb-2">Max Margin:</label>
+                <input type="text" id="maxMargin" class="px-4 py-2 border rounded w-full number-input">
+            </div>
+            <div>
+                <label for="minProfit" class="block mb-2">Min Potential Profit:</label>
+                <input type="text" id="minProfit" class="px-4 py-2 border rounded w-full number-input">
+            </div>
+            <div>
+                <label for="maxProfit" class="block mb-2">Max Potential Profit:</label>
+                <input type="text" id="maxProfit" class="px-4 py-2 border rounded w-full number-input">
+            </div>
+            <div>
+                <label for="minMarginVolume" class="block mb-2">Min Margin X Volume:</label>
+                <input type="text" id="minMarginVolume" class="px-4 py-2 border rounded w-full number-input">
+            </div>
+            <div>
+                <label for="maxMarginVolume" class="block mb-2">Max Margin X Volume:</label>
+                <input type="text" id="maxMarginVolume" class="px-4 py-2 border rounded w-full number-input">
+            </div>
+            <div>
+                <label for="minVolume" class="block mb-2">Min Volume:</label>
+                <input type="text" id="minVolume" class="px-4 py-2 border rounded w-full number-input">
+            </div>
+            <div>
+                <label for="maxVolume" class="block mb-2">Max Volume:</label>
+                <input type="text" id="maxVolume" class="px-4 py-2 border rounded w-full number-input">
+            </div>
+            <div>
+                <label for="minLimit" class="block mb-2">Min Limit:</label>
+                <input type="text" id="minLimit" class="px-4 py-2 border rounded w-full number-input">
+            </div>
+            <div>
+                <label for="maxLimit" class="block mb-2">Max Limit:</label>
+                <input type="text" id="maxLimit" class="px-4 py-2 border rounded w-full number-input">
+            </div>
+            <!-- New Filters for Latest Instabuy and Instasell Times in Minutes -->
+            <div>
+                <label for="minHighTime" class="block mb-2">Min Latest Instabuy (minutes):</label>
+                <input type="text" id="minHighTime" class="px-4 py-2 border rounded w-full number-input">
+            </div>
+            <div>
+                <label for="maxHighTime" class="block mb-2">Max Latest Instabuy (minutes):</label>
+                <input type="text" id="maxHighTime" class="px-4 py-2 border rounded w-full number-input">
+            </div>
+            <div>
+                <label for="minLowTime" class="block mb-2">Min Latest Instasell (minutes):</label>
+                <input type="text" id="minLowTime" class="px-4 py-2 border rounded w-full number-input">
+            </div>
+            <div>
+                <label for="maxLowTime" class="block mb-2">Max Latest Instasell (minutes):</label>
+                <input type="text" id="maxLowTime" class="px-4 py-2 border rounded w-full number-input">
+            </div>
+        </div>
+        <button id="apply-filters" class="mt-4 px-4 py-2 bg-green-500 text-white rounded">Apply Filters</button>
     </div>
 
     <div id="item-list">
@@ -247,12 +331,7 @@
             }
         }
 
-        // Format number with commas, return 'N/A' if undefined
-        function formatNumber(number) {
-            return number ? number.toLocaleString() : 'N/A';
-        }
-
-        // Format with K for thousands, M for millions, and B for billions
+        // Function to format numbers with K, M, B suffixes
         function roundedFormat(number) {
             if (number === undefined || number === null) return 'N/A';
 
@@ -284,6 +363,49 @@
             } else {
                 return formattedNumber; // For smaller numbers, no suffix
             }
+        }
+
+        // Function to format number with commas
+        function formatNumberWithCommas(number) {
+            if (!number) return '';
+            return number.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        }
+
+        // Function to strip commas from a formatted number
+        function stripCommas(numberString) {
+            return numberString.replace(/,/g, '');
+        }
+
+        // Add event listeners for formatted inputs and restrict to numbers
+        function setupFormattedNumberInput(inputId) {
+            const inputElement = document.getElementById(inputId);
+
+            inputElement.addEventListener('input', () => {
+                let value = inputElement.value.replace(/[^0-9]/g, ''); // Allow only numbers
+
+                value = stripCommas(value);
+                if (!isNaN(value) && value !== '') {
+                    inputElement.value = formatNumberWithCommas(value);
+                }
+            });
+
+            inputElement.addEventListener('blur', () => {
+                if (inputElement.value === '') {
+                    inputElement.value = '';
+                }
+            });
+        }
+
+        // Set up formatted number inputs and restrict to numbers
+        function setupNumberFormatting() {
+            const inputIds = [
+                'minInstabuy', 'maxInstabuy', 'minInstasell', 'maxInstasell',
+                'minMargin', 'maxMargin', 'minProfit', 'maxProfit',
+                'minMarginVolume', 'maxMarginVolume', 'minVolume', 'maxVolume',
+                'minLimit', 'maxLimit', 'minHighTime', 'maxHighTime', 'minLowTime', 'maxLowTime'
+            ];
+
+            inputIds.forEach(id => setupFormattedNumberInput(id));
         }
 
         // Convert timestamp to a human-readable time format
@@ -321,6 +443,13 @@
                 const yearsAgo = Math.floor(secondsAgo / year);
                 return `${yearsAgo} year${yearsAgo !== 1 ? 's' : ''} ago`;
             }
+        }
+
+        // Convert timestamp to time difference in minutes for filtering
+        function getTimeDifferenceInMinutes(timestamp) {
+            const now = Math.floor(Date.now() / 1000);
+            const secondsAgo = now - timestamp;
+            return Math.floor(secondsAgo / 60); // Convert to minutes
         }
 
         // Function to display items in the table with a maximum of 50 items
@@ -362,22 +491,22 @@
                 row.innerHTML = `
                     <td class="px-4 py-2"><img src="${item.imageUrl}" alt="${item.itemName}" class="block mx-auto max-w-[48px] max-h-[48px] w-auto h-auto"></td>
                     <td class="px-4 py-2">${item.itemName}</td>
-                    <td class="px-4 py-2">${formatNumber(item.instabuyPrice)}</td>
-                    <td class="px-4 py-2">${formatNumber(item.instasellPrice)}</td>
+                    <td class="px-4 py-2">${formatNumberWithCommas(item.instabuyPrice)}</td>
+                    <td class="px-4 py-2">${formatNumberWithCommas(item.instasellPrice)}</td>
                     <td class="px-4 py-2">${item.highTimeFormatted}</td>
                     <td class="px-4 py-2">${item.lowTimeFormatted}</td>
                     <td class="px-4 py-2" style="color: ${item.margin >= 0 ? 'green' : 'red'};">${roundedFormat(item.margin)}</td>
                     <td class="px-4 py-2" style="color: ${item.potentialProfit >= 0 ? 'green' : 'red'};">${roundedFormat(item.potentialProfit)}</td>
                     <td class="px-4 py-2" style="color: ${item.marginVolume >= 0 ? 'green' : 'red'};">${roundedFormat(item.marginVolume)}</td>
                     <td class="px-4 py-2">${roundedFormat(item.totalVolume)}</td>
-                    <td class="px-4 py-2">${formatNumber(item.limit)}</td>
+                    <td class="px-4 py-2">${formatNumberWithCommas(item.limit)}</td>
                     <td class="px-4 py-2">${roundedFormat(item.taxValue)}</td>
                 `;
                 itemListBody.appendChild(row);
             }
         }
 
-        // Function to filter items based on the search input
+        // Function to filter items based on the search input and filters
         function filterItems() {
             const searchTerm = document.getElementById('search-input').value.trim().toLowerCase();
 
@@ -387,8 +516,66 @@
                 filteredItems = itemDataArray.filter(item => item.itemName.toLowerCase().includes(searchTerm));
             }
 
+            // Apply filter panel values
+            const minInstabuy = parseFloat(stripCommas(document.getElementById('minInstabuy').value));
+            const maxInstabuy = parseFloat(stripCommas(document.getElementById('maxInstabuy').value));
+            const minInstasell = parseFloat(stripCommas(document.getElementById('minInstasell').value));
+            const maxInstasell = parseFloat(stripCommas(document.getElementById('maxInstasell').value));
+            const minMargin = parseFloat(stripCommas(document.getElementById('minMargin').value));
+            const maxMargin = parseFloat(stripCommas(document.getElementById('maxMargin').value));
+            const minProfit = parseFloat(stripCommas(document.getElementById('minProfit').value));
+            const maxProfit = parseFloat(stripCommas(document.getElementById('maxProfit').value));
+            const minMarginVolume = parseFloat(stripCommas(document.getElementById('minMarginVolume').value));
+            const maxMarginVolume = parseFloat(stripCommas(document.getElementById('maxMarginVolume').value));
+            const minVolume = parseFloat(stripCommas(document.getElementById('minVolume').value));
+            const maxVolume = parseFloat(stripCommas(document.getElementById('maxVolume').value));
+            const minLimit = parseFloat(stripCommas(document.getElementById('minLimit').value));
+            const maxLimit = parseFloat(stripCommas(document.getElementById('maxLimit').value));
+
+            const minHighTime = parseFloat(stripCommas(document.getElementById('minHighTime').value));
+            const maxHighTime = parseFloat(stripCommas(document.getElementById('maxHighTime').value));
+            const minLowTime = parseFloat(stripCommas(document.getElementById('minLowTime').value));
+            const maxLowTime = parseFloat(stripCommas(document.getElementById('maxLowTime').value));
+
+            filteredItems = filteredItems.filter(item => {
+                let instabuyCheck = (!isNaN(minInstabuy) ? item.instabuyPrice >= minInstabuy : true) &&
+                    (!isNaN(maxInstabuy) ? item.instabuyPrice <= maxInstabuy : true);
+                let instasellCheck = (!isNaN(minInstasell) ? item.instasellPrice >= minInstasell : true) &&
+                    (!isNaN(maxInstasell) ? item.instasellPrice <= maxInstasell : true);
+                let marginCheck = (!isNaN(minMargin) ? item.margin >= minMargin : true) &&
+                    (!isNaN(maxMargin) ? item.margin <= maxMargin : true);
+                let profitCheck = (!isNaN(minProfit) ? item.potentialProfit >= minProfit : true) &&
+                    (!isNaN(maxProfit) ? item.potentialProfit <= maxProfit : true);
+                let marginVolumeCheck = (!isNaN(minMarginVolume) ? item.marginVolume >= minMarginVolume : true) &&
+                    (!isNaN(maxMarginVolume) ? item.marginVolume <= maxMarginVolume : true);
+                let volumeCheck = (!isNaN(minVolume) ? item.totalVolume >= minVolume : true) &&
+                    (!isNaN(maxVolume) ? item.totalVolume <= maxVolume : true);
+                let limitCheck = (!isNaN(minLimit) ? item.limit >= minLimit : true) &&
+                    (!isNaN(maxLimit) ? item.limit <= maxLimit : true);
+
+                let highTimeCheck = (!isNaN(minHighTime) ? getTimeDifferenceInMinutes(item.highTime) >= minHighTime : true) &&
+                    (!isNaN(maxHighTime) ? getTimeDifferenceInMinutes(item.highTime) <= maxHighTime : true);
+                let lowTimeCheck = (!isNaN(minLowTime) ? getTimeDifferenceInMinutes(item.lowTime) >= minLowTime : true) &&
+                    (!isNaN(maxLowTime) ? getTimeDifferenceInMinutes(item.lowTime) <= maxLowTime : true);
+
+                return instabuyCheck && instasellCheck && marginCheck && profitCheck && marginVolumeCheck && volumeCheck && limitCheck && highTimeCheck && lowTimeCheck;
+            });
+
             displayItems(filteredItems);
         }
+
+        // Apply filters when the "Apply Filters" button is clicked
+        document.getElementById('apply-filters').addEventListener('click', filterItems);
+
+        // Toggle filter panel visibility and button text
+        document.getElementById('filter-button').addEventListener('click', () => {
+            const filterPanel = document.getElementById('filter-panel');
+            const filterButton = document.getElementById('filter-button');
+            const isPanelVisible = filterPanel.style.display === 'block';
+
+            filterPanel.style.display = isPanelVisible ? 'none' : 'block';
+            filterButton.textContent = isPanelVisible ? 'Show Filters' : 'Hide Filters';
+        });
 
         // Function to handle sorting when a header is clicked
         function handleSort(event) {
@@ -529,7 +716,7 @@
             updateSortIndicators();
 
             // Refresh prices every 30 seconds
-            setInterval(getAllPrices, 30000); // 30000 ms = 30 seconds
+            setInterval(getAllPrices, 10000); // 30000 ms = 30 seconds
         }
 
         // Attach event listener to the search input
@@ -565,7 +752,10 @@
         });
 
         // Run loadData when the page is fully loaded
-        window.onload = loadData;
+        window.onload = function () {
+            loadData();
+            setupNumberFormatting();
+        };
     </script>
 </body>
 
